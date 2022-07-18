@@ -44,20 +44,20 @@ contract LeverUp is IUniswapV3SwapCallback {
         // Approve Euler to withdraw WETH
         IERC20(WETH).approve(EULER_MAINNET, type(uint).max);
 
-        // Deposit WETH and get back eTokens
-        (uint wethToDeposit, address pool)  = abi.decode(data, (uint, address));
+        // Deposit all the WETH in this contract and get back eTokens
+        address pool = abi.decode(data, (address));
         IEulerEToken wethEToken = IEulerEToken(WETH_ETOKEN);
-        wethEToken.deposit(0, wethToDeposit);
+        wethEToken.deposit(0, IERC20(WETH).balanceOf(address(this)));
 
         // Enter WETH market
         IEulerMarkets markets = IEulerMarkets(EULER_MARKETS);
         markets.enterMarket(0, WETH);
 
-        // Borrow 100 USDC
+        // Borrow <amount0Delta> USDC
         IEulerDToken usdcDToken = IEulerDToken(USDC_DTOKEN);
         usdcDToken.borrow(0, uint256(amount0Delta));
 
-        // Send 100 USDC back to v3 pool
+        // Send <amount0Delta> USDC back to v3 pool
         IERC20(USDC).transfer(pool, uint256(amount0Delta));
     }
 
@@ -70,7 +70,11 @@ contract LeverUp is IUniswapV3SwapCallback {
             true,
             amountUsdcSpecified.toInt256(),
             TickMath.MIN_SQRT_RATIO + 1,
-            abi.encode(amountWeth, pool)
+            abi.encode(pool)
         );
+        // Send dTokens to msg.sender
+//        IERC20(USDC_DTOKEN).transfer(msg.sender, IERC20(USDC_DTOKEN).balanceOf(address(this)));
+        // Send eTokens to msg.sender
+//        IERC20(WETH_ETOKEN).transfer(msg.sender, IERC20(WETH_ETOKEN).balanceOf(address(this)));
     }
 }
