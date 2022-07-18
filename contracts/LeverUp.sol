@@ -34,6 +34,9 @@ contract LeverUp is IUniswapV3SwapCallback {
         bytes calldata data
     ) external override {
         IERC20(WETH).approve(EULER_MAINNET, type(uint).max);
+        uint wethToDeposit = abi.decode(data, (uint));
+        console.log("wethToDeposit");
+        console.logUint(wethToDeposit);
 //        IEulerEToken(WETH_ETOKEN).deposit(0, )
     }
 
@@ -46,7 +49,7 @@ contract LeverUp is IUniswapV3SwapCallback {
             true,
             amountUsdcSpecified.toInt256(),
             TickMath.MIN_SQRT_RATIO + 1,
-            ''
+            abi.encode(amountWeth)
         );
     }
 }
