@@ -53,7 +53,7 @@ contract LeverUp is IUniswapV3SwapCallback, IDeferredLiquidityCheck {
         IERC20(WETH).approve(EULER_MAINNET, type(uint).max);
 
         // Deposit all the WETH in this contract and get back eTokens
-        address pool = abi.decode(data, (address));
+        (address pool, address recipient) = abi.decode(data, (address, address));
         IEulerEToken wethEToken = IEulerEToken(WETH_ETOKEN);
         wethEToken.deposit(0, IERC20(WETH).balanceOf(address(this)));
 
@@ -68,12 +68,13 @@ contract LeverUp is IUniswapV3SwapCallback, IDeferredLiquidityCheck {
         // Send <amount0Delta> USDC back to v3 pool
         IERC20(USDC).transfer(pool, uint256(amount0Delta));
 
-        IEulerExec(EULER_EXEC).deferLiquidityCheck(address(this), '');
+        IEulerExec(EULER_EXEC).deferLiquidityCheck(address(this), abi.encode(recipient));
     }
 
     function onDeferredLiquidityCheck(bytes calldata data) external override {
-        IERC20(WETH_ETOKEN).transfer(msg.sender, IERC20(WETH_ETOKEN).balanceOf(address(this)));
-        IERC20(USDC_DTOKEN).transfer(msg.sender, IERC20(USDC_DTOKEN).balanceOf(address(this)));
+        address recipient = abi.decode(data, (address));
+        IERC20(WETH_ETOKEN).transfer(recipient, IERC20(WETH_ETOKEN).balanceOf(address(this)));
+        IERC20(USDC_DTOKEN).transfer(recipient, IERC20(USDC_DTOKEN).balanceOf(address(this)));
     }
 
     function leverUp(IUniswapV3Pool pool, uint256 amountWeth, uint256 amountUsdcSpecified) external {
@@ -85,7 +86,7 @@ contract LeverUp is IUniswapV3SwapCallback, IDeferredLiquidityCheck {
             true,
             amountUsdcSpecified.toInt256(),
             TickMath.MIN_SQRT_RATIO + 1,
-            abi.encode(pool)
+            abi.encode(pool, msg.sender)
         );
     }
 }
