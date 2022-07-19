@@ -2734,6 +2734,8 @@ describe("LeverUp", function () {
     // Caller must `enterMarket` the collateral token (WETH)
     await market.enterMarket(0, WETH);
 
+    console.log("WETH Balance of EOA before LeverUp: ", await weth.balanceOf(EOA));
+
     await leverUp.leverUp(
       // Uniswap V3 WETH/USDC pool
       "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
@@ -2743,6 +2745,7 @@ describe("LeverUp", function () {
       "100000000"
     );
 
+    console.log("WETH Balance of EOA after LeverUp: ", await weth.balanceOf(EOA));
     console.log("WETH EToken Balance of LeverUp: ", await weth_etoken.balanceOf(leverUp.address));
     console.log("USDC DToken Balance of LeverUp: ", await usdc_dtoken.balanceOf(leverUp.address));
     console.log("WETH EToken Balance of EOA: ", await weth_etoken.balanceOf(EOA));

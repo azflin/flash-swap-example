@@ -21,7 +21,6 @@ interface IEulerMarkets {
     function underlyingToEToken(address underlying) external view returns (address);
     function enterMarket(uint subAccountId, address newMarket) external;
 }
-
 interface IEulerEToken {
     function deposit(uint subAccountId, uint amount) external;
     function balanceOf(address account) external view returns (uint);
@@ -32,11 +31,9 @@ interface IEulerDToken {
     function borrow(uint subAccountId, uint amount) external;
     function balanceOf(address account) external view returns (uint);
 }
-
 interface IEulerExec {
     function deferLiquidityCheck(address account, bytes memory data) external;
 }
-
 interface IDeferredLiquidityCheck {
     function onDeferredLiquidityCheck(bytes memory data) external;
 }
@@ -49,11 +46,12 @@ contract LeverUp is IUniswapV3SwapCallback, IDeferredLiquidityCheck {
         int256 amount1Delta,
         bytes calldata data
     ) external override {
+        (address pool, address recipient) = abi.decode(data, (address, address));
+
         // Approve Euler to withdraw WETH
         IERC20(WETH).approve(EULER_MAINNET, type(uint).max);
 
         // Deposit all the WETH in this contract and get back eTokens
-        (address pool, address recipient) = abi.decode(data, (address, address));
         IEulerEToken wethEToken = IEulerEToken(WETH_ETOKEN);
         wethEToken.deposit(0, IERC20(WETH).balanceOf(address(this)));
 
