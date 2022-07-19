@@ -15,6 +15,7 @@ address constant USDC_DTOKEN = 0x84721A3dB22EB852233AEAE74f9bC8477F8bcc42;
 address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 address constant EULER_MAINNET = 0x27182842E098f60e3D576794A5bFFb0777E025d3;
+address constant EULER_EXEC = 0x59828FdF7ee634AaaD3f58B19fDBa3b03E2D9d80;
 
 interface IEulerMarkets {
     function underlyingToEToken(address underlying) external view returns (address);
@@ -27,13 +28,20 @@ interface IEulerEToken {
     function balanceOfUnderlying(address account) external view returns (uint);
     function withdraw(uint subAccountId, uint amount) external;
 }
-
 interface IEulerDToken {
     function borrow(uint subAccountId, uint amount) external;
     function balanceOf(address account) external view returns (uint);
 }
 
-contract LeverUp is IUniswapV3SwapCallback {
+interface IEulerExec {
+    function deferLiquidityCheck(address account, bytes memory data) external;
+}
+
+interface IDeferredLiquidityCheck {
+    function onDeferredLiquidityCheck(bytes memory data) external;
+}
+
+contract LeverUp is IUniswapV3SwapCallback, IDeferredLiquidityCheck {
     using SafeCast for uint256;
 
     function uniswapV3SwapCallback(
@@ -59,6 +67,13 @@ contract LeverUp is IUniswapV3SwapCallback {
 
         // Send <amount0Delta> USDC back to v3 pool
         IERC20(USDC).transfer(pool, uint256(amount0Delta));
+
+        IEulerExec(EULER_EXEC).deferLiquidityCheck(address(this), '');
+    }
+
+    function onDeferredLiquidityCheck(bytes calldata data) external override {
+        IERC20(WETH_ETOKEN).transfer(msg.sender, IERC20(WETH_ETOKEN).balanceOf(address(this)));
+        IERC20(USDC_DTOKEN).transfer(msg.sender, IERC20(USDC_DTOKEN).balanceOf(address(this)));
     }
 
     function leverUp(IUniswapV3Pool pool, uint256 amountWeth, uint256 amountUsdcSpecified) external {
@@ -72,9 +87,5 @@ contract LeverUp is IUniswapV3SwapCallback {
             TickMath.MIN_SQRT_RATIO + 1,
             abi.encode(pool)
         );
-        // Send dTokens to msg.sender
-//        IERC20(USDC_DTOKEN).transfer(msg.sender, IERC20(USDC_DTOKEN).balanceOf(address(this)));
-        // Send eTokens to msg.sender
-//        IERC20(WETH_ETOKEN).transfer(msg.sender, IERC20(WETH_ETOKEN).balanceOf(address(this)));
     }
 }
